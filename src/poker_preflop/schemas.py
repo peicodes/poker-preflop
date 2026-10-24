@@ -1,6 +1,6 @@
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 
 class Spot(BaseModel):
@@ -45,18 +45,11 @@ class ExpectedCall(BaseModel):
 
 
 class ExpectedRaise(BaseModel):
-    """A raise is correct if its size falls in [raise_to_min, raise_to_max] (bb); a missing bound is open-ended."""
+    """A raise is scored by how close its size is to `raise_to_target` (bb)."""
 
     action: Literal['raise'] = 'raise'
-    raise_to_min: float | None = None
-    raise_to_max: float | None = None
-
-    @model_validator(mode='after')
-    def _check_range(self) -> 'ExpectedRaise':
-        if None not in (self.raise_to_min, self.raise_to_max) and self.raise_to_min > self.raise_to_max:  # type: ignore[operator]
-            raise ValueError('raise_to_min must be <= raise_to_max')
-        return self
+    raise_to_target: float = Field(gt=0)
 
 
 ExpectedDecision = Annotated[ExpectedFold | ExpectedCall | ExpectedRaise, Field(discriminator='action')]
-"""Ground truth for a case, discriminated on `action`; only raises carry extra fields (the acceptable size range)."""
+"""Ground truth for a case, discriminated on `action`; only raises carry an extra field (the target size)."""

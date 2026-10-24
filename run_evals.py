@@ -25,7 +25,7 @@ args = parser.parse_args()
 
 # Send traces to Logfire once credentials exist (`logfire auth` + `logfire projects new` in this folder).
 if Path('.logfire').exists() or os.environ.get('LOGFIRE_TOKEN'):
-    logfire.configure()
+    logfire.configure(console=False)  # the console exporter prints every span twice (start + end); the report below is enough
     logfire.instrument_pydantic_ai()
 
 dataset = Dataset[Spot, Decision | ExpectedDecision].from_file(args.dataset, custom_evaluator_types=EVALUATOR_TYPES)

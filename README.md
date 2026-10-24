@@ -11,8 +11,8 @@ Evaluate an LLM preflop prompt with Pydantic AI + Pydantic Evals, running on you
 - **Prompt**: `prompts/<name>.md` is the system prompt. Copy `v1.md` to try a variant, select it with `--prompt`.
 - **Spot formatting** (the user message): `render_spot` in `src/poker_preflop/agent.py`.
 - **Output schema**: `Decision` in `src/poker_preflop/schemas.py` (`fold` / `call` / `raise` + `raise_to_bb`).
-- **Dataset**: `datasets/preflop.yaml`. Each case's `expected_output` is an `ExpectedDecision`: the action and, for raises, the acceptable `raise_to_min`/`raise_to_max` in bb.
-- **Evaluators**: `src/poker_preflop/evaluators.py` (`ActionMatches`, `RaiseSizeInRange`, `DecisionCorrect`, all code-based and reading ranges from `expected_output`).
+- **Dataset**: `datasets/preflop.yaml`. Each case's `expected_output` is an `ExpectedDecision`: the action and, for raises, a `raise_to_target` in bb.
+- **Evaluators**: `src/poker_preflop/evaluators.py` (`ActionMatches`, `RaiseSizeScore`, `DecisionCorrect`, all code-based). `RaiseSizeScore` is a 0-1 Gaussian falloff on % difference from the target (10% off ≈ 0.85, 20% ≈ 0.53, 40% ≈ 0.08).
 - **Model backend**: `src/poker_preflop/claude_code_model.py` shells out to the `claude` CLI via `claude-agent-sdk`
   (needs `claude auth login`).
 - **Anthropic vs Google AI Studio**: `--model sonnet` runs on Claude Code; `--model gateway/google-ai-studio:gemini-2.5-flash`
