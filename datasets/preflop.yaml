@@ -1,4 +1,5 @@
-# Preflop spots, 6-max NLHE cash, 100bb. metadata (expected decision): action + acceptable raise-to range (bb).
+# Preflop spots, 6-max NLHE cash, 100bb. expected_output (ExpectedDecision): action + acceptable raise-to range (bb).
+# Evaluators are code-based and read the range from each case's expected_output.
 cases:
   - name: utg_aa_open
     inputs:
@@ -7,7 +8,7 @@ cases:
       hero_position: UTG
       hero_hand: AsAd
       action_before_hero: []
-    metadata:
+    expected_output:
       action: raise
       raise_to_min: 2.0
       raise_to_max: 3.0
@@ -19,7 +20,7 @@ cases:
       hero_position: BTN
       hero_hand: 7h2c
       action_before_hero: [UTG folds, HJ folds, CO folds]
-    metadata:
+    expected_output:
       action: fold
 
   - name: bb_98s_vs_btn_open
@@ -29,7 +30,7 @@ cases:
       hero_position: BB
       hero_hand: 9s8s
       action_before_hero: [UTG folds, HJ folds, CO folds, BTN raises to 2.5bb, SB folds]
-    metadata:
+    expected_output:
       action: call
 
   - name: co_32o_vs_utg_open
@@ -39,7 +40,7 @@ cases:
       hero_position: CO
       hero_hand: 3d2c
       action_before_hero: [UTG raises to 2.5bb, HJ folds]
-    metadata:
+    expected_output:
       action: fold
 
   - name: btn_kk_vs_co_open
@@ -49,7 +50,7 @@ cases:
       hero_position: BTN
       hero_hand: KhKc
       action_before_hero: [UTG folds, HJ folds, CO raises to 2.5bb]
-    metadata:
+    expected_output:
       action: raise
       raise_to_min: 6.5
       raise_to_max: 9.0

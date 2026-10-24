@@ -27,7 +27,7 @@ if Path('.logfire').exists() or os.environ.get('LOGFIRE_TOKEN'):
     logfire.configure()
     logfire.instrument_pydantic_ai()
 
-dataset = Dataset[Spot, Decision, ExpectedDecision].from_file(args.dataset, custom_evaluator_types=EVALUATOR_TYPES)
+dataset = Dataset[Spot, Decision | ExpectedDecision].from_file(args.dataset, custom_evaluator_types=EVALUATOR_TYPES)
 agent = build_agent(prompt=args.prompt, model=args.model)
 
 

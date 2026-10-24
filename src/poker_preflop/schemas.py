@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -16,28 +16,47 @@ class Spot(BaseModel):
     )
 
 
-class Decision(BaseModel):
-    """The model's preflop decision."""
-
+class Fold(BaseModel):
     reasoning: str = Field(description='One or two sentences explaining the decision.')
-    action: Literal['fold', 'call', 'raise']
-    raise_to_bb: float | None = Field(
-        default=None,
-        description='Total bet size in big blinds after raising. Required for "raise", null otherwise.',
-    )
+    action: Literal['fold'] = 'fold'
+
+
+class Call(BaseModel):
+    reasoning: str = Field(description='One or two sentences explaining the decision.')
+    action: Literal['call'] = 'call'
+
+
+class Raise(BaseModel):
+    reasoning: str = Field(description='One or two sentences explaining the decision.')
+    action: Literal['raise'] = 'raise'
+    raise_to_bb: float = Field(description='Total bet size in big blinds after raising.')
+
+
+Decision = Annotated[Fold | Call | Raise, Field(discriminator='action')]
+"""The model's preflop decision, discriminated on `action`."""
+
+
+class ExpectedFold(BaseModel):
+    action: Literal['fold'] = 'fold'
+
+
+class ExpectedCall(BaseModel):
+    action: Literal['call'] = 'call'
+
+
+class ExpectedRaise(BaseModel):
+    """A raise is correct if its size falls in [raise_to_min, raise_to_max] (bb); a missing bound is open-ended."""
+
+    action: Literal['raise'] = 'raise'
+    raise_to_min: float | None = None
+    raise_to_max: float | None = None
 
     @model_validator(mode='after')
-    def _check_raise_size(self) -> 'Decision':
-        if self.action == 'raise' and self.raise_to_bb is None:
-            raise ValueError('raise_to_bb is required when action is "raise"')
-        if self.action != 'raise' and self.raise_to_bb is not None:
-            raise ValueError('raise_to_bb must be null unless action is "raise"')
+    def _check_range(self) -> 'ExpectedRaise':
+        if None not in (self.raise_to_min, self.raise_to_max) and self.raise_to_min > self.raise_to_max:  # type: ignore[operator]
+            raise ValueError('raise_to_min must be <= raise_to_max')
         return self
 
 
-class ExpectedDecision(BaseModel):
-    """Ground truth for a case. A raise is correct if its size falls in [raise_to_min, raise_to_max]."""
-
-    action: Literal['fold', 'call', 'raise']
-    raise_to_min: float | None = None
-    raise_to_max: float | None = None
+ExpectedDecision = Annotated[ExpectedFold | ExpectedCall | ExpectedRaise, Field(discriminator='action')]
+"""Ground truth for a case, discriminated on `action`; only raises carry extra fields (the acceptable size range)."""
