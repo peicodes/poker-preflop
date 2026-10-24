@@ -1,15 +1,18 @@
 import math
 from dataclasses import dataclass
+from functools import cache
 
-from pydantic_evals.evaluators import Evaluator, EvaluatorContext
+from pydantic import BaseModel, Field
+from pydantic_ai import Agent
+from pydantic_evals.evaluators import EvaluationReason, Evaluator, EvaluatorContext
 
+from .agent import build_model, render_spot
 from .schemas import Decision, ExpectedDecision, ExpectedRaise, Raise, Spot
 
 Ctx = EvaluatorContext[Spot, Decision, ExpectedDecision]
 
 
-SIZE_SIGMA = 0.25  # fractional error at which the score has fallen to 1/e (~0.37)
-PASS_SCORE = 0.5  # a raise counts as correct at ~20% off target or closer
+SIZE_SIGMA = 0.25  # fractional error at which the size score has fallen to 1/e (~0.37)
 
 
 def _size_score(output: Raise, expected: ExpectedRaise) -> float:
@@ -19,33 +22,60 @@ def _size_score(output: Raise, expected: ExpectedRaise) -> float:
 
 
 @dataclass
-class ActionMatches(Evaluator[Spot, Decision, ExpectedDecision]):
-    """Fold/call/raise matches the expected action."""
+class Correctness(Evaluator[Spot, Decision, ExpectedDecision]):
+    """0-1 score: 0 if the action is wrong; 1 for a right fold/call; for a right raise, how close the size is to the target."""
 
-    def evaluate(self, ctx: Ctx) -> bool:
-        return ctx.output.action == ctx.expected_output.action
+    def evaluate(self, ctx: Ctx) -> float:
+        expected, output = ctx.expected_output, ctx.output
+        if output.action != expected.action:
+            return 0.0
+        if isinstance(expected, ExpectedRaise) and isinstance(output, Raise):
+            return _size_score(output, expected)
+        return 1.0
+
+
+JUDGE_MODEL = 'gateway/google-ai-studio:gemini-3.8-flash'  # claude-code models can't do structured output
+
+
+class ReasoningVerdict(BaseModel):
+    consistent: bool = Field(
+        description='True if the reasoning supports the chosen action, e.g. not folding while calling the hand strong.'
+    )
+    consistent_reason: str = Field(description='One sentence.')
+    raise_size_justified: bool | None = Field(
+        description='Only for raises: True if the reasoning gives a rationale for the raise size; null for fold/call.'
+    )
+    raise_size_reason: str | None = Field(description='One sentence; null for fold/call.')
+
+
+@cache
+def _judge() -> Agent[None, ReasoningVerdict]:
+    return Agent(
+        build_model(JUDGE_MODEL),
+        output_type=ReasoningVerdict,
+        instructions=(
+            "You grade a poker player's written reasoning, not whether the decision is right. Check two things:\n"
+            '1. consistent: does the reasoning argue for the action that was actually taken? Fail if it contradicts it '
+            '(e.g. action is fold but the reasoning says the hand is very strong, or action is raise but it argues the hand is weak).\n'
+            '2. raise_size_justified: only if the action is raise, does the reasoning say why that particular size was chosen '
+            '(e.g. position, the opener\'s size, stack depth, wanting folds or value)? Merely saying "raise" or "standard sizing" '
+            'with no reasoning about the size fails. For fold/call set this and its reason to null.'
+        ),
+    )
 
 
 @dataclass
-class RaiseSizeScore(Evaluator[Spot, Decision, ExpectedDecision]):
-    """When the expected action is raise, 0-1 score for how close the raise size is to the target (0 if not a raise)."""
+class Reasoning(Evaluator[Spot, Decision, ExpectedDecision]):
+    """LLM judge of the `reasoning` text: it must support the action taken and, for raises, justify the size."""
 
-    def evaluate(self, ctx: Ctx) -> dict[str, float]:
-        expected, output = ctx.expected_output, ctx.output
-        if not isinstance(expected, ExpectedRaise):
-            return {}  # not applicable
-        return {'raise_size_score': _size_score(output, expected) if isinstance(output, Raise) else 0.0}
-
-
-@dataclass
-class DecisionCorrect(Evaluator[Spot, Decision, ExpectedDecision]):
-    """Overall pass: right action and, for raises, a size scoring at least PASS_SCORE."""
-
-    def evaluate(self, ctx: Ctx) -> bool:
-        expected, output = ctx.expected_output, ctx.output
-        if isinstance(expected, ExpectedRaise):
-            return isinstance(output, Raise) and _size_score(output, expected) >= PASS_SCORE
-        return output.action == expected.action
+    async def evaluate(self, ctx: Ctx) -> EvaluationReason:
+        prompt = f'{render_spot(ctx.inputs)}\n\nPlayer output:\n{ctx.output.model_dump_json(indent=2)}'
+        verdict = (await _judge().run(prompt)).output
+        passed, reasons = verdict.consistent, [verdict.consistent_reason]
+        if isinstance(ctx.output, Raise):
+            passed = passed and bool(verdict.raise_size_justified)
+            reasons.append(verdict.raise_size_reason or 'No rationale given for the raise size.')
+        return EvaluationReason(passed, ' '.join(reasons))
 
 
-EVALUATOR_TYPES = [ActionMatches, RaiseSizeScore, DecisionCorrect]
+EVALUATOR_TYPES = [Correctness, Reasoning]

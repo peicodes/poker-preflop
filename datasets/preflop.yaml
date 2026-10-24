@@ -1,5 +1,5 @@
 # Preflop spots, 6-max NLHE cash, 100bb. expected_output (ExpectedDecision): action + target raise-to size (bb) for raises.
-# Evaluators are code-based and read the target from each case's expected_output.
+# Correctness is code-based and reads the target from each case's expected_output; Reasoning is an LLM judge.
 cases:
   - name: utg_aa_open
     inputs:
@@ -53,7 +53,61 @@ cases:
       action: raise
       raise_to_target: 7.5
 
+  - name: co_qq_vs_utg_open
+    inputs:
+      game: 6-max NLHE cash
+      effective_stack_bb: 100
+      hero_position: CO
+      hero_hand: QhQd
+      action_before_hero: [UTG raises to 2.5bb, HJ folds]
+    expected_output:
+      action: raise
+      raise_to_target: 8
+
+  - name: sb_aks_vs_btn_open
+    inputs:
+      game: 6-max NLHE cash
+      effective_stack_bb: 100
+      hero_position: SB
+      hero_hand: AsKs
+      action_before_hero: [UTG folds, HJ folds, CO folds, BTN raises to 2.5bb]
+    expected_output:
+      action: raise
+      raise_to_target: 11
+
+  - name: bb_aa_vs_utg_open
+    inputs:
+      game: 6-max NLHE cash
+      effective_stack_bb: 100
+      hero_position: BB
+      hero_hand: AhAc
+      action_before_hero: [UTG raises to 2.5bb, HJ folds, CO folds, BTN folds, SB folds]
+    expected_output:
+      action: raise
+      raise_to_target: 11
+
+  - name: btn_a5s_folded_to
+    inputs:
+      game: 6-max NLHE cash
+      effective_stack_bb: 100
+      hero_position: BTN
+      hero_hand: Ah5h
+      action_before_hero: [UTG folds, HJ folds, CO folds]
+    expected_output:
+      action: raise
+      raise_to_target: 2.5
+
+  - name: btn_qq_squeeze_vs_hj_open_co_call
+    inputs:
+      game: 6-max NLHE cash
+      effective_stack_bb: 100
+      hero_position: BTN
+      hero_hand: QsQc
+      action_before_hero: [UTG folds, HJ raises to 2.5bb, CO calls]
+    expected_output:
+      action: raise
+      raise_to_target: 11
+
 evaluators:
-  - ActionMatches
-  - RaiseSizeScore
-  - DecisionCorrect
+  - Correctness
+  - Reasoning
