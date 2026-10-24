@@ -2,6 +2,7 @@
 
     python run_evals.py                          # prompts/v1.md, sonnet
     python run_evals.py --prompt v2 --model opus
+    python run_evals.py --model gateway/google-ai-studio:gemini-2.5-flash
 """
 
 import argparse
@@ -17,7 +18,7 @@ from poker_preflop.schemas import Decision, ExpectedDecision, Spot
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--prompt', default='v1', help='file name in prompts/, without .md')
-parser.add_argument('--model', default='sonnet', help='anything `claude --model` accepts')
+parser.add_argument('--model', default='sonnet', help='`claude --model` value (Claude Code) or gateway/google-ai-studio:<model> (Logfire gateway)')
 parser.add_argument('--dataset', default='datasets/preflop.yaml')
 parser.add_argument('--concurrency', type=int, default=5)
 args = parser.parse_args()

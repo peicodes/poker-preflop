@@ -14,4 +14,7 @@ Evaluate an LLM preflop prompt with Pydantic AI + Pydantic Evals, running on you
 - **Dataset**: `datasets/preflop.yaml`. Each case's `expected_output` is an `ExpectedDecision`: the action and, for raises, the acceptable `raise_to_min`/`raise_to_max` in bb.
 - **Evaluators**: `src/poker_preflop/evaluators.py` (`ActionMatches`, `RaiseSizeInRange`, `DecisionCorrect`, all code-based and reading ranges from `expected_output`).
 - **Model backend**: `src/poker_preflop/claude_code_model.py` shells out to the `claude` CLI via `claude-agent-sdk`
-  (needs `claude auth login`). To use an API key instead, pass e.g. `'anthropic:claude-sonnet-5-5'` to the `Agent` in `agent.py`.
+  (needs `claude auth login`).
+- **Anthropic vs Google AI Studio**: `--model sonnet` runs on Claude Code; `--model gateway/google-ai-studio:gemini-2.5-flash`
+  runs through your Logfire gateway's `google-ai-studio` provider (set `PYDANTIC_AI_GATEWAY_API_KEY`, and `PYDANTIC_AI_GATEWAY_BASE_URL`
+  if not US region). See `build_model` in `agent.py`. Run both and compare the experiments in Logfire.
