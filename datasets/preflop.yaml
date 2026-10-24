@@ -1,0 +1,60 @@
+# Preflop spots, 6-max NLHE cash, 100bb. metadata (expected decision): action + acceptable raise-to range (bb).
+cases:
+  - name: utg_aa_open
+    inputs:
+      game: 6-max NLHE cash
+      effective_stack_bb: 100
+      hero_position: UTG
+      hero_hand: AsAd
+      action_before_hero: []
+    metadata:
+      action: raise
+      raise_to_min: 2.0
+      raise_to_max: 3.0
+
+  - name: btn_72o_folded_to
+    inputs:
+      game: 6-max NLHE cash
+      effective_stack_bb: 100
+      hero_position: BTN
+      hero_hand: 7h2c
+      action_before_hero: [UTG folds, HJ folds, CO folds]
+    metadata:
+      action: fold
+
+  - name: bb_98s_vs_btn_open
+    inputs:
+      game: 6-max NLHE cash
+      effective_stack_bb: 100
+      hero_position: BB
+      hero_hand: 9s8s
+      action_before_hero: [UTG folds, HJ folds, CO folds, BTN raises to 2.5bb, SB folds]
+    metadata:
+      action: call
+
+  - name: co_32o_vs_utg_open
+    inputs:
+      game: 6-max NLHE cash
+      effective_stack_bb: 100
+      hero_position: CO
+      hero_hand: 3d2c
+      action_before_hero: [UTG raises to 2.5bb, HJ folds]
+    metadata:
+      action: fold
+
+  - name: btn_kk_vs_co_open
+    inputs:
+      game: 6-max NLHE cash
+      effective_stack_bb: 100
+      hero_position: BTN
+      hero_hand: KhKc
+      action_before_hero: [UTG folds, HJ folds, CO raises to 2.5bb]
+    metadata:
+      action: raise
+      raise_to_min: 6.5
+      raise_to_max: 9.0
+
+evaluators:
+  - ActionMatches
+  - RaiseSizeInRange
+  - DecisionCorrect
